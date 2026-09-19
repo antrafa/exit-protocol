@@ -18,7 +18,7 @@ touch "${FAKE_HOME}/.npmrc"
 touch "${FAKE_HOME}/.pypirc"
 
 export HOME="${FAKE_HOME}"
-source "${TARGET_SCRIPT}" --source-only
+source "${TARGET_SCRIPT}"
 
 echo "=== Testando clean_dev_credentials, clean_cloud_infra e clean_dev_tokens ==="
 DRY_RUN=false

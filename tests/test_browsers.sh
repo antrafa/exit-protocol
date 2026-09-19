@@ -20,7 +20,7 @@ setup_test_dirs() {
 
 # Carregar script com HOME apontando para o FAKE_HOME
 export HOME="${FAKE_HOME}"
-source "${TARGET_SCRIPT}" --source-only
+source "${TARGET_SCRIPT}"
 
 # 1. Testar se a função kill_running_processes existe
 echo "=== Testando declaração de kill_running_processes ==="

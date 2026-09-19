@@ -28,7 +28,7 @@ touch "${CUSTOM_TEST_DIR}/codigo_secreto.py"
 touch "${OUTSIDE_TEST_DIR}/nao_deve_sumir.txt"
 
 export HOME="${FAKE_HOME}"
-source "${TARGET_SCRIPT}" --source-only
+source "${TARGET_SCRIPT}"
 
 CUSTOM_PATHS=("${CUSTOM_TEST_DIR}")
 DRY_RUN=false

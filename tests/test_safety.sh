@@ -13,7 +13,7 @@ fi
 
 echo "=== Testando safe_remove com caminho proibido (/) ==="
 export TEST_RUN=1
-source "${TARGET_SCRIPT}" --source-only 2>/dev/null || true
+source "${TARGET_SCRIPT}" 2>/dev/null || true
 
 # Testar se safe_remove bloqueia caminhos críticos
 if safe_remove "/" 0 2>/dev/null; then

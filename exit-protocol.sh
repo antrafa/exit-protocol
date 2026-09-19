@@ -503,9 +503,6 @@ parse_args() {
                 show_help
                 exit 0
                 ;;
-            --source-only)
-                return 0
-                ;;
             *)
                 log_error "Opção desconhecida: $1"
                 show_help
