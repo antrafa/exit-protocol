@@ -32,6 +32,12 @@ if safe_remove "${HOME}" 0 2>/dev/null; then
     exit 1
 fi
 
+echo "=== Testando bypass da lista negra via caminho relativo ==="
+if safe_remove "${HOME}/qualquer/../../$(basename "${HOME}")" 0 2>/dev/null; then
+    echo "FALHA: safe_remove não bloqueou grafia relativa do \$HOME"
+    exit 1
+fi
+
 echo "=== Testando remoção de symlink quebrado ==="
 TEST_TMP=$(mktemp -d /tmp/safety_test_symlink.XXXXXX)
 ln -s "${TEST_TMP}/nonexistent_target" "${TEST_TMP}/broken_link"

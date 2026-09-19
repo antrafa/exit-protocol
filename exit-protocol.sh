@@ -54,13 +54,17 @@ safe_remove() {
     local content_only="${2:-0}"
 
     if [[ -z "${target}" ]]; then
+        log_error "Alvo vazio ignorado."
         return 1
     fi
 
-    # Normalizar caminho
-    local clean_target
-    clean_target="$(echo "${target}" | sed 's:/*$::')"
-    [[ -z "${clean_target}" ]] && clean_target="/"
+    # A canonicalização serve só para VALIDAR: sem ela "$HOME/projetos/../../$USER"
+    # escapa da lista negra abaixo por ser outra grafia do mesmo diretório.
+    # As operações seguem usando o caminho original, senão um symlink quebrado
+    # seria resolvido para o alvo inexistente e nunca removido.
+    local clean_target home_real
+    clean_target="$(realpath -m -- "${target}")"
+    home_real="$(realpath -m -- "${HOME:-/nonexistent}")"
 
     # Lista negra de segurança absoluta
     case "${clean_target}" in
@@ -70,7 +74,7 @@ safe_remove() {
             ;;
     esac
 
-    if [[ -n "${HOME}" && "${clean_target}" == "${HOME}" ]]; then
+    if [[ -n "${HOME}" && "${clean_target}" == "${home_real}" ]]; then
         log_error "Tentativa de remoção da pasta HOME bloqueada: ${target}"
         return 1
     fi
