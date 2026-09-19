@@ -229,6 +229,18 @@ clean_dev_credentials() {
         "${HOME}/.gitconfig"
         "${HOME}/.git-credentials"
         "${HOME}/.config/git"
+
+        # Keyring do GNOME: guarda a chave que descriptografa os cookies do
+        # Chrome e as senhas salvas do sistema. Apagar só o perfil do navegador
+        # deixa esse material para trás.
+        "${HOME}/.local/share/keyrings"
+        "${HOME}/.pki"
+        "${HOME}/.password-store"
+
+        # CLIs que persistem token de acesso
+        "${HOME}/.config/gh"
+        "${HOME}/.config/glab"
+        "${HOME}/.config/op"
     )
 
     remove_all "${cred_targets[@]}"
@@ -251,6 +263,7 @@ clean_cloud_infra() {
         "${HOME}/.config/helm"
         "${HOME}/.cache/helm"
         "${HOME}/.vault-token"
+        "${HOME}/.config/rclone"
     )
 
     remove_all "${cloud_targets[@]}"
@@ -288,6 +301,7 @@ clean_ides() {
 
     local ide_targets=(
         "${HOME}/.config/Code/User/workspaceStorage"
+        "${HOME}/.config/Code/User/globalStorage"
         "${HOME}/.config/Code/User/history"
         "${HOME}/.config/Code/Backups"
         "${HOME}/.vscode"
