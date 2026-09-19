@@ -8,7 +8,7 @@
 
 **Tech Stack:** Bash 4+, Linux Coreutils (`rm`, `du`, `find`, `killall`/`pkill`), Bats ou scripts de teste em sandbox bash isolado (`TMPDIR`).
 
-**Spec:** [docs/superpowers/specs/2026-09-18-protocolo-demissao-design.md](file:///Users/antoniorafael/workspace/projects/protocolo-demissao/docs/superpowers/specs/2026-09-18-protocolo-demissao-design.md)
+**Spec:** [docs/superpowers/specs/2026-09-18-protocolo-demissao-design.md](docs/superpowers/specs/2026-09-18-protocolo-demissao-design.md)
 
 ## Global Constraints
 

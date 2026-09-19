@@ -72,14 +72,14 @@ Exemplo de saída do dry-run:
 =====================================================
        INICIANDO PROTOCOLO DE DEMISSÃO               
 =====================================================
-Usuário alvo: antoniorafael (/home/antoniorafael)
+Usuário alvo: usuario (/home/usuario)
 Modo Dry-Run: true
 
 [DRY-RUN] Simulação: encerraria processos de navegadores e aplicativos
 [INFO] Limpando navegadores (histórico, perfis, cache e cookies)...
-[DRY-RUN] Removeria: /home/antoniorafael/.config/google-chrome (1.2G)
-[DRY-RUN] Removeria: /home/antoniorafael/.mozilla (850M)
-[IGNORADO] Não encontrado: /home/antoniorafael/snap/chromium
+[DRY-RUN] Removeria: /home/usuario/.config/google-chrome (1.2G)
+[DRY-RUN] Removeria: /home/usuario/.mozilla (850M)
+[IGNORADO] Não encontrado: /home/usuario/snap/chromium
 ...
 =====================================================
      SIMULAÇÃO CONCLUÍDA (--dry-run)                 

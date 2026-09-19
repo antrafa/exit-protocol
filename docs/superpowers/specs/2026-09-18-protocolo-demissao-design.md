@@ -1,7 +1,7 @@
 # Design Doc: Protocolo de Demissão (Ubuntu Linux)
 
 - **Data:** 2026-09-18
-- **Autor:** Antonio Rafael & Antigravity
+- **Autor:** Open Source Contributor
 - **Status:** Aprovado para Implementação
 - **Alvo:** Ubuntu Linux (Desktop / Workstation)
 
