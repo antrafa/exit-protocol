@@ -171,6 +171,78 @@ clean_browsers() {
     done
 }
 
+# --- MÓDULO: CREDENCIAIS DE DESENVOLVIMENTO, NUVEM E TOKENS ---
+
+clean_dev_credentials() {
+    [[ "${CLEAN_DEV_CREDENTIALS}" != true ]] && return 0
+    log_info "Limpando credenciais de desenvolvimento (SSH, GPG, Git)..."
+
+    # Encerrar cache de credenciais do git em memória
+    git credential-cache exit 2>/dev/null || true
+
+    local cred_targets=(
+        "${HOME}/.ssh"
+        "${HOME}/.gnupg"
+        "${HOME}/.gitconfig"
+        "${HOME}/.git-credentials"
+        "${HOME}/.config/git"
+    )
+
+    for target in "${cred_targets[@]}"; do
+        safe_remove "${target}"
+    done
+}
+
+clean_cloud_infra() {
+    [[ "${CLEAN_CLOUD_INFRA}" != true ]] && return 0
+    log_info "Limpando configurações de nuvem e DevOps (AWS, GCP, Azure, Kube, Docker)..."
+
+    local cloud_targets=(
+        "${HOME}/.aws"
+        "${HOME}/.config/gcloud"
+        "${HOME}/.azure"
+        "${HOME}/.kube"
+        "${HOME}/.minikube"
+        "${HOME}/.k9s"
+        "${HOME}/.docker"
+        "${HOME}/.terraform.d"
+        "${HOME}/.terraformrc"
+        "${HOME}/.config/helm"
+        "${HOME}/.cache/helm"
+        "${HOME}/.vault-token"
+    )
+
+    for target in "${cloud_targets[@]}"; do
+        safe_remove "${target}"
+    done
+}
+
+clean_dev_tokens() {
+    [[ "${CLEAN_DEV_TOKENS}" != true ]] && return 0
+    log_info "Limpando tokens de gerenciadores de pacotes..."
+
+    local token_targets=(
+        "${HOME}/.npmrc"
+        "${HOME}/.yarnrc"
+        "${HOME}/.yarnrc.yml"
+        "${HOME}/.config/pnpm"
+        "${HOME}/.pip/pip.conf"
+        "${HOME}/.pypirc"
+        "${HOME}/.cargo/credentials"
+        "${HOME}/.cargo/credentials.toml"
+        "${HOME}/.composer/auth.json"
+        "${HOME}/.config/composer/auth.json"
+        "${HOME}/.m2/settings.xml"
+        "${HOME}/.m2/settings-security.xml"
+        "${HOME}/.gradle/gradle.properties"
+        "${HOME}/.netrc"
+    )
+
+    for target in "${token_targets[@]}"; do
+        safe_remove "${target}"
+    done
+}
+
 show_help() {
     cat << EOF
 Uso: $(basename "$0") [OPÇÕES]
