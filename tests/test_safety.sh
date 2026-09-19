@@ -55,6 +55,20 @@ if [[ "${FAILED_COUNT}" -ne 1 ]]; then
 fi
 rm -rf "${BLOCK_TMP}"
 
+echo "=== Testando que falha de remoção não vira sucesso ==="
+IMMUTABLE_TMP=$(mktemp -d /tmp/safety_test_immutable.XXXXXX)
+mkdir -p "${IMMUTABLE_TMP}/protegido"
+touch "${IMMUTABLE_TMP}/protegido/arquivo.txt"
+chmod a-w "${IMMUTABLE_TMP}/protegido"
+if safe_remove "${IMMUTABLE_TMP}/protegido/arquivo.txt" 0 2>/dev/null; then
+    echo "FALHA: safe_remove reportou sucesso sem ter removido"
+    chmod u+w "${IMMUTABLE_TMP}/protegido"
+    rm -rf "${IMMUTABLE_TMP}"
+    exit 1
+fi
+chmod u+w "${IMMUTABLE_TMP}/protegido"
+rm -rf "${IMMUTABLE_TMP}"
+
 echo "=== Testando remoção de symlink quebrado ==="
 TEST_TMP=$(mktemp -d /tmp/safety_test_symlink.XXXXXX)
 ln -s "${TEST_TMP}/nonexistent_target" "${TEST_TMP}/broken_link"

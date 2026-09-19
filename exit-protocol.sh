@@ -95,10 +95,18 @@ safe_remove() {
 
         if [[ "${DRY_RUN}" == true ]]; then
             log_dry "Esvaziaria o conteúdo de: ${target} (${count} itens)"
-        else
-            find "${target}" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + 2>/dev/null || true
-            log_success "Conteúdo esvaziado: ${target}"
+            return 0
         fi
+
+        find "${target}" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + 2>/dev/null || true
+
+        local remaining
+        remaining=$(find "${target}" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)
+        if [[ "${remaining}" -gt 0 ]]; then
+            log_error "FALHOU ao esvaziar (${remaining} item(ns) restante(s)): ${target}"
+            return 1
+        fi
+        log_success "Conteúdo esvaziado: ${target}"
         return 0
     fi
 
@@ -107,15 +115,24 @@ safe_remove() {
         return 0
     fi
 
-    local size="-"
+    local size
     size=$(du -sh "${target}" 2>/dev/null | cut -f1 || echo "-")
 
     if [[ "${DRY_RUN}" == true ]]; then
         log_dry "Removeria: ${target} (${size})"
-    else
-        rm -rf -- "${target}" 2>/dev/null || true
-        log_success "Removido: ${target} (${size})"
+        return 0
     fi
+
+    rm -rf -- "${target}" 2>/dev/null || true
+
+    # O propósito do script é garantir que o dado sumiu: só declara sucesso
+    # depois de conferir. Arquivo imutável, permissão negada ou disco em
+    # somente-leitura passariam despercebidos de outro modo.
+    if [[ -e "${target}" || -L "${target}" ]]; then
+        log_error "FALHOU ao remover: ${target}"
+        return 1
+    fi
+    log_success "Removido: ${target} (${size})"
 }
 
 # Contabiliza a falha em vez de deixar 'set -e' abortar o protocolo inteiro no
