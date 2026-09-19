@@ -33,7 +33,7 @@ COLOR_GRAY="\033[0;90m"
 log_info()    { echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} $*"; }
 log_success() { echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} $*"; }
 log_warn()    { echo -e "${COLOR_YELLOW}[AVISO]${COLOR_RESET} $*"; }
-log_error()   { echo -e "${COLOR_RED}[ERRO]${COLOR_RESET} $*"; }
+log_error()   { echo -e "${COLOR_RED}[ERRO]${COLOR_RESET} $*" >&2; }
 log_dry()     { echo -e "${COLOR_YELLOW}[DRY-RUN]${COLOR_RESET} $*"; }
 log_skip()    { echo -e "${COLOR_GRAY}[IGNORADO]${COLOR_RESET} $*"; }
 
@@ -115,10 +115,11 @@ safe_remove() {
 # --- MÓDULO: NAVEGADORES E PROCESSOS ---
 
 kill_running_processes() {
+    [[ "${DRY_RUN}" == true ]] && { log_dry "Simulação: encerraria processos de navegadores e aplicativos"; return 0; }
     log_info "Encerrando processos de navegadores e aplicativos..."
     local apps=(
         "chrome" "google-chrome" "chromium" "chromium-browser"
-        "firefox" "brave" "msedge" "edge"
+        "firefox" "brave" "msedge" "microsoft-edge"
         "slack" "discord" "teams" "telegram-desktop"
     )
     for app in "${apps[@]}"; do
@@ -178,7 +179,9 @@ clean_dev_credentials() {
     log_info "Limpando credenciais de desenvolvimento (SSH, GPG, Git)..."
 
     # Encerrar cache de credenciais do git em memória
-    git credential-cache exit 2>/dev/null || true
+    if [[ "${DRY_RUN}" != true ]]; then
+        git credential-cache exit 2>/dev/null || true
+    fi
 
     local cred_targets=(
         "${HOME}/.ssh"
@@ -241,6 +244,173 @@ clean_dev_tokens() {
     for target in "${token_targets[@]}"; do
         safe_remove "${target}"
     done
+}
+
+# --- MÓDULO: IDES E EDITORES ---
+
+clean_ides() {
+    [[ "${CLEAN_IDES}" != true ]] && return 0
+    log_info "Limpando workspaces e histórico de IDEs (VS Code, JetBrains, Cursor)..."
+
+    local ide_targets=(
+        "${HOME}/.config/Code/User/workspaceStorage"
+        "${HOME}/.config/Code/User/history"
+        "${HOME}/.config/Code/Backups"
+        "${HOME}/.vscode"
+        "${HOME}/snap/code"
+        "${HOME}/.config/Cursor"
+        "${HOME}/.cursor"
+        "${HOME}/.config/VSCodium"
+        "${HOME}/.config/JetBrains"
+        "${HOME}/.local/share/JetBrains"
+        "${HOME}/.cache/JetBrains"
+    )
+
+    for target in "${ide_targets[@]}"; do
+        safe_remove "${target}"
+    done
+}
+
+# --- MÓDULO: COMUNICAÇÃO ---
+
+clean_communication() {
+    [[ "${CLEAN_COMMUNICATION}" != true ]] && return 0
+    log_info "Limpando dados e sessões de aplicativos de comunicação..."
+
+    local comm_targets=(
+        "${HOME}/.config/Slack"
+        "${HOME}/.cache/Slack"
+        "${HOME}/snap/slack"
+        "${HOME}/.var/app/com.slack.Slack"
+        "${HOME}/.config/discord"
+        "${HOME}/snap/discord"
+        "${HOME}/.var/app/com.discordapp.Discord"
+        "${HOME}/.config/teams"
+        "${HOME}/.config/Microsoft/Microsoft Teams"
+        "${HOME}/.var/app/com.microsoft.Teams"
+        "${HOME}/.local/share/TelegramDesktop"
+        "${HOME}/snap/telegram-desktop"
+        "${HOME}/.var/app/org.telegram.desktop"
+    )
+
+    for target in "${comm_targets[@]}"; do
+        safe_remove "${target}"
+    done
+}
+
+# --- MÓDULO: PASTAS PESSOAIS E CUSTOMIZADAS ---
+
+clean_user_dirs() {
+    [[ "${CLEAN_USER_DIRS}" != true ]] && return 0
+    log_info "Esvaziando conteúdo das pastas pessoais..."
+
+    local user_dirs=(
+        "${HOME}/Downloads"
+        "${HOME}/Documents"
+        "${HOME}/Documentos"
+        "${HOME}/Desktop"
+        "${HOME}/Área de Trabalho"
+        "${HOME}/Pictures"
+        "${HOME}/Imagens"
+        "${HOME}/Videos"
+        "${HOME}/Vídeos"
+        "${HOME}/Music"
+        "${HOME}/Música"
+    )
+
+    for dir in "${user_dirs[@]}"; do
+        if [[ -d "${dir}" ]]; then
+            safe_remove "${dir}" 1
+        fi
+    done
+}
+
+clean_custom_paths() {
+    if [[ ${#CUSTOM_PATHS[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    log_info "Processando pastas customizadas configuradas em CUSTOM_PATHS..."
+    for custom in "${CUSTOM_PATHS[@]}"; do
+        # Expandir til (~) se presente
+        local expanded="${custom/#\~/$HOME}"
+        safe_remove "${expanded}"
+    done
+}
+
+# --- MÓDULO: LIXEIRA E HISTÓRICOS ---
+
+clean_trash() {
+    [[ "${CLEAN_TRASH}" != true ]] && return 0
+    log_info "Esvaziando Lixeira..."
+
+    local trash_dir="${HOME}/.local/share/Trash"
+    if [[ -d "${trash_dir}" ]]; then
+        safe_remove "${trash_dir}" 1
+    fi
+}
+
+clean_shell_history() {
+    [[ "${CLEAN_SHELL_HISTORY}" != true ]] && return 0
+    log_info "Removendo históricos de comandos do shell..."
+
+    local history_files=(
+        "${HOME}/.bash_history"
+        "${HOME}/.zsh_history"
+        "${HOME}/.lesshst"
+        "${HOME}/.python_history"
+        "${HOME}/.node_repl_history"
+        "${HOME}/.mysql_history"
+        "${HOME}/.psql_history"
+        "${HOME}/.sqlite_history"
+        "${HOME}/.viminfo"
+        "${HOME}/.local/share/nvim"
+    )
+
+    for hist in "${history_files[@]}"; do
+        safe_remove "${hist}"
+    done
+
+    # Limpar buffer da sessão ativa se não for dry-run
+    if [[ "${DRY_RUN}" != true ]]; then
+        history -c 2>/dev/null || true
+        history -w 2>/dev/null || true
+    fi
+}
+
+# --- ORQUESTRADOR PRINCIPAL ---
+
+run_protocol() {
+    echo -e "${COLOR_CYAN}=====================================================${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}       INICIANDO PROTOCOLO DE DEMISSÃO               ${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}=====================================================${COLOR_RESET}"
+    echo "Usuário alvo: ${USER} (${HOME})"
+    echo "Modo Dry-Run: ${DRY_RUN}"
+    echo
+
+    kill_running_processes
+
+    clean_browsers
+    clean_dev_credentials
+    clean_cloud_infra
+    clean_dev_tokens
+    clean_ides
+    clean_communication
+    clean_user_dirs
+    clean_custom_paths
+    clean_trash
+    clean_shell_history
+
+    echo
+    echo -e "${COLOR_GREEN}=====================================================${COLOR_RESET}"
+    if [[ "${DRY_RUN}" == true ]]; then
+        echo -e "${COLOR_YELLOW}     SIMULAÇÃO CONCLUÍDA (--dry-run)                 ${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}  Nenhum arquivo ou dado real foi modificado.        ${COLOR_RESET}"
+    else
+        echo -e "${COLOR_GREEN}     PROTOCOLO CONCLUÍDO COM SUCESSO!                ${COLOR_RESET}"
+        echo -e "${COLOR_GREEN}  Recomenda-se fechar este terminal ou fazer logout. ${COLOR_RESET}"
+    fi
+    echo -e "${COLOR_GREEN}=====================================================${COLOR_RESET}"
 }
 
 show_help() {
@@ -314,4 +484,5 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     check_not_root
     parse_args "$@"
     confirm_execution
+    run_protocol
 fi
