@@ -420,10 +420,12 @@ clean_shell_history() {
 
     remove_all "${history_files[@]}"
 
-    # Limpar buffer da sessão ativa se não for dry-run
+    # 'history -c' aqui só afetaria este subshell. O terminal que invocou o
+    # script mantém o histórico em memória e reescreve ~/.bash_history no
+    # logout, desfazendo a remoção acima. Só o usuário pode evitar isso.
     if [[ "${DRY_RUN}" != true ]]; then
-        history -c 2>/dev/null || true
-        history -w 2>/dev/null || true
+        log_warn "O histórico deste terminal ainda está em memória e será regravado no logout."
+        log_warn "Execute NESTE terminal ao final: unset HISTFILE && exit"
     fi
 }
 
