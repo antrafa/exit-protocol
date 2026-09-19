@@ -69,6 +69,11 @@ safe_remove() {
             ;;
     esac
 
+    if [[ -n "${HOME}" && "${clean_target}" == "${HOME}" ]]; then
+        log_error "Tentativa de remoção da pasta HOME bloqueada: ${target}"
+        return 1
+    fi
+
     if [[ "${content_only}" -eq 1 ]]; then
         if [[ ! -d "${target}" ]]; then
             log_skip "Diretório não existe: ${target}"
@@ -91,7 +96,7 @@ safe_remove() {
         return 0
     fi
 
-    if [[ ! -e "${target}" ]]; then
+    if [[ ! -e "${target}" && ! -L "${target}" ]]; then
         log_skip "Não encontrado: ${target}"
         return 0
     fi
@@ -105,6 +110,65 @@ safe_remove() {
         rm -rf -- "${target}" 2>/dev/null || true
         log_success "Removido: ${target} (${size})"
     fi
+}
+
+# --- MÓDULO: NAVEGADORES E PROCESSOS ---
+
+kill_running_processes() {
+    log_info "Encerrando processos de navegadores e aplicativos..."
+    local apps=(
+        "chrome" "google-chrome" "chromium" "chromium-browser"
+        "firefox" "brave" "msedge" "edge"
+        "slack" "discord" "teams" "telegram-desktop"
+    )
+    for app in "${apps[@]}"; do
+        if pkill -f "${app}" 2>/dev/null; then
+            log_info "Processo encerrado: ${app}"
+        fi
+    done
+    sleep 1
+}
+
+clean_browsers() {
+    [[ "${CLEAN_BROWSERS}" != true ]] && return 0
+    log_info "Limpando navegadores (histórico, perfis, cache e cookies)..."
+
+    local browser_targets=(
+        # Google Chrome / Chromium
+        "${HOME}/.config/google-chrome"
+        "${HOME}/.cache/google-chrome"
+        "${HOME}/.config/chromium"
+        "${HOME}/.cache/chromium"
+        "${HOME}/snap/chromium"
+        "${HOME}/snap/google-chrome"
+        "${HOME}/.var/app/com.google.Chrome"
+        "${HOME}/.var/app/org.chromium.Chromium"
+
+        # Mozilla Firefox
+        "${HOME}/.mozilla"
+        "${HOME}/.cache/mozilla"
+        "${HOME}/snap/firefox"
+        "${HOME}/.var/app/org.mozilla.firefox"
+
+        # Brave
+        "${HOME}/.config/BraveSoftware"
+        "${HOME}/.cache/BraveSoftware"
+        "${HOME}/snap/brave"
+        "${HOME}/.var/app/com.brave.Browser"
+
+        # Microsoft Edge
+        "${HOME}/.config/microsoft-edge"
+        "${HOME}/.cache/microsoft-edge"
+        "${HOME}/.var/app/com.microsoft.Edge"
+
+        # Opera / Vivaldi
+        "${HOME}/.config/opera"
+        "${HOME}/.config/vivaldi"
+    )
+
+    for target in "${browser_targets[@]}"; do
+        safe_remove "${target}"
+    done
 }
 
 show_help() {

@@ -26,4 +26,25 @@ if safe_remove "" 0 2>/dev/null; then
     exit 1
 fi
 
+echo "=== Testando safe_remove com \$HOME ==="
+if safe_remove "${HOME}" 0 2>/dev/null; then
+    echo "FALHA: safe_remove não bloqueou \$HOME"
+    exit 1
+fi
+
+echo "=== Testando remoção de symlink quebrado ==="
+TEST_TMP=$(mktemp -d /tmp/safety_test_symlink.XXXXXX)
+ln -s "${TEST_TMP}/nonexistent_target" "${TEST_TMP}/broken_link"
+if [[ ! -L "${TEST_TMP}/broken_link" ]]; then
+    echo "FALHA: Não foi possível criar symlink de teste"
+    exit 1
+fi
+safe_remove "${TEST_TMP}/broken_link"
+if [[ -L "${TEST_TMP}/broken_link" ]]; then
+    echo "FALHA: safe_remove não removeu symlink quebrado"
+    rm -rf "${TEST_TMP}"
+    exit 1
+fi
+rm -rf "${TEST_TMP}"
+
 echo "=== Testes de Segurança passaram com sucesso! ==="
