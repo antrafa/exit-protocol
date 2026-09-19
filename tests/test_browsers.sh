@@ -24,7 +24,7 @@ source "${TARGET_SCRIPT}" --source-only
 
 # 1. Testar se a função kill_running_processes existe
 echo "=== Testando declaração de kill_running_processes ==="
-if ! type kill_running_processes | grep -q "is a function"; then
+if ! declare -F kill_running_processes >/dev/null; then
     echo "FALHA: Função kill_running_processes não está definida!"
     exit 1
 fi
