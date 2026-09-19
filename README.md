@@ -40,7 +40,10 @@ O script foi concebido com uma política rígida de tolerância zero a falhas de
 - **Bloqueio de Root (`check_not_root`):** O script verifica o `EUID` e encerra a execução com código de erro se for rodado como root ou via `sudo`.
 - **Lista Negra de Diretórios Críticos:** Bloqueio explícito contra remoção de `/`, `/home`, `/root`, `/bin`, `/boot`, `/dev`, `/etc`, `/lib`, `/usr`, `/var`, `/tmp`, etc.
 - **Proteção do `$HOME`:** Impede qualquer chamada acidental que tente deletar a raiz do diretório home do usuário.
-- **Normalização de Caminhos:** Remove barras redundantes e trata caminhos entre aspas para evitar problemas com espaços ou caracteres especiais.
+- **Canonicalização de Caminhos (`realpath -m`):** Todo alvo é resolvido para sua forma canônica **antes** de passar pela lista negra, de modo que grafias alternativas do mesmo diretório (`$HOME/projetos/../..`) não escapem da validação.
+- **Cerca de `CUSTOM_PATHS`:** Caminho customizado que resolva para fora do `$HOME` é recusado e registrado como erro, nunca removido.
+- **Falha Não Aborta o Protocolo:** Um alvo bloqueado ou não removível é contabilizado e o script segue para os módulos seguintes, em vez de parar no meio da limpeza.
+- **Sucesso Verificado:** O script só registra `[OK] Removido` depois de conferir que o alvo sumiu do disco. Falhas viram `[ERRO]` e o script encerra com código de saída diferente de zero.
 - **Suporte a Links Simbólicos Quebrados:** Identifica e remove symlinks inválidos sem falhas de verificação de existência (`-e` vs `-L`).
 - **Preservação de Pastas do Sistema:** Em pastas como `Downloads/`, `Documentos/` e `Lixeira`, o script **apaga apenas o conteúdo interno**, preservando a pasta em si para manter a integridade visual da interface gráfica do Ubuntu.
 - **Confirmação Explícita:** Por padrão, a execução real só inicia após o usuário digitar exatamente a palavra `CONFIRMAR`.
@@ -173,6 +176,7 @@ CUSTOM_PATHS=(
 
 - Suporta tanto `$HOME` quanto o caractere de expansão de til `~`.
 - Pastas configuradas aqui serão completamente excluídas (`rm -rf`).
+- **Todo caminho precisa resolver para dentro do `$HOME`.** Qualquer entrada fora dele é recusada com `[ERRO]` e ignorada — `CUSTOM_PATHS` é o único alvo preenchido à mão e, por isso, o mais perigoso do script.
 
 ---
 
@@ -180,17 +184,17 @@ CUSTOM_PATHS=(
 
 | Módulo | Ativador | O que é limpo / Alvos |
 | :--- | :--- | :--- |
-| **Encerramento de Processos** | Automático | Executa `pkill` para fechar navegadores e mensageiros antes de apagar arquivos de banco e sessão. |
+| **Encerramento de Processos** | Automático | Fecha navegadores e mensageiros antes de apagar arquivos de banco e sessão. O padrão do `pkill` é ancorado no caminho do executável (`/nome` seguido de espaço ou fim de linha) e restrito ao usuário atual, para não derrubar processos que apenas mencionem o nome na linha de comando. |
 | **Navegadores** | `CLEAN_BROWSERS` | Perfis, caches, senhas e histórico (.deb, Snap e Flatpak):<br>• Google Chrome / Chromium (`.config`, `.cache`, `snap`, `.var/app`)<br>• Mozilla Firefox (`.mozilla`, `.cache/mozilla`, `snap`, `.var/app`)<br>• Brave Browser (`.config/BraveSoftware`, `snap`, `.var/app`)<br>• Microsoft Edge (`.config/microsoft-edge`, `snap`, `.var/app`)<br>• Opera e Vivaldi (`.config/opera`, `.config/vivaldi`) |
-| **Credenciais Dev** | `CLEAN_DEV_CREDENTIALS` | • Chaves e hosts SSH (`~/.ssh`)<br>• Chaves GPG/PGP (`~/.gnupg`)<br>• Configuração e credenciais Git (`~/.gitconfig`, `~/.git-credentials`, `~/.config/git`)<br>• Esvazia cache de credenciais do Git em memória (`git credential-cache exit`) |
-| **Nuvem & DevOps** | `CLEAN_CLOUD_INFRA` | • AWS CLI (`~/.aws`)<br>• Google Cloud SDK (`~/.config/gcloud`)<br>• Azure CLI (`~/.azure`)<br>• Kubernetes / K9s (`~/.kube`, `~/.minikube`, `~/.k9s`)<br>• Docker config e tokens de auth (`~/.docker`)<br>• Terraform (`~/.terraform.d`, `~/.terraformrc`)<br>• Helm charts e caches (`~/.config/helm`, `~/.cache/helm`)<br>• HashiCorp Vault token (`~/.vault-token`) |
+| **Credenciais Dev** | `CLEAN_DEV_CREDENTIALS` | • Chaves e hosts SSH (`~/.ssh`)<br>• Chaves GPG/PGP (`~/.gnupg`)<br>• Configuração e credenciais Git (`~/.gitconfig`, `~/.git-credentials`, `~/.config/git`)<br>• Esvazia cache de credenciais do Git em memória (`git credential-cache exit`)<br>• **Keyring do sistema** (`~/.local/share/keyrings`) — guarda a chave que descriptografa os cookies do Chrome e as senhas salvas; apagar só o perfil do navegador deixa esse material para trás<br>• Certificados e bases NSS (`~/.pki`)<br>• `pass` / password-store (`~/.password-store`)<br>• Tokens de CLI de forge e cofre: GitHub CLI (`~/.config/gh`), GitLab CLI (`~/.config/glab`), 1Password CLI (`~/.config/op`) |
+| **Nuvem & DevOps** | `CLEAN_CLOUD_INFRA` | • AWS CLI (`~/.aws`)<br>• Google Cloud SDK (`~/.config/gcloud`)<br>• Azure CLI (`~/.azure`)<br>• Kubernetes / K9s (`~/.kube`, `~/.minikube`, `~/.k9s`)<br>• Docker config e tokens de auth (`~/.docker`)<br>• Terraform (`~/.terraform.d`, `~/.terraformrc`)<br>• Helm charts e caches (`~/.config/helm`, `~/.cache/helm`)<br>• HashiCorp Vault token (`~/.vault-token`)<br>• rclone, com credenciais de object storage (`~/.config/rclone`) |
 | **Tokens de Pacotes** | `CLEAN_DEV_TOKENS` | • Node / JS: `~/.npmrc`, `~/.yarnrc`, `~/.yarnrc.yml`, `~/.config/pnpm`<br>• Python: `~/.pip/pip.conf`, `~/.pypirc`<br>• Rust: `~/.cargo/credentials`, `credentials.toml`<br>• PHP: `~/.composer/auth.json`, `~/.config/composer/auth.json`<br>• Java: `~/.m2/settings.xml`, `settings-security.xml`, `~/.gradle/gradle.properties`<br>• Geral: `~/.netrc` |
-| **IDEs e Editores** | `CLEAN_IDES` | • VS Code e VSCodium: workspaces, históricos, backups e extensões (`~/.config/Code`, `~/.vscode`, `snap/code`, `.config/VSCodium`)<br>• Cursor AI: `~/.cursor`, `~/.config/Cursor`<br>• Família JetBrains: IntelliJ, PyCharm, WebStorm, etc. (`.config/JetBrains`, `.local/share/JetBrains`, `.cache/JetBrains`) |
+| **IDEs e Editores** | `CLEAN_IDES` | • VS Code e VSCodium: workspaces, históricos, backups e extensões (`~/.config/Code`, `~/.vscode`, `snap/code`, `.config/VSCodium`)<br>• `globalStorage` do VS Code, onde extensões persistem tokens de acesso (`~/.config/Code/User/globalStorage`)<br>• Cursor AI: `~/.cursor`, `~/.config/Cursor`<br>• Família JetBrains: IntelliJ, PyCharm, WebStorm, etc. (`.config/JetBrains`, `.local/share/JetBrains`, `.cache/JetBrains`) |
 | **Comunicação** | `CLEAN_COMMUNICATION` | Sessões, caches e dados locais (.deb, Snap e Flatpak):<br>• Slack (`~/.config/Slack`, `.cache`, `snap`, `.var/app`)<br>• Discord (`~/.config/discord`, `snap`, `.var/app`)<br>• Microsoft Teams (`~/.config/teams`, `~/.config/Microsoft/...`, `.var/app`)<br>• Telegram Desktop (`~/.local/share/TelegramDesktop`, `snap`, `.var/app`) |
 | **Pastas de Usuário** | `CLEAN_USER_DIRS` | Esvazia o **conteúdo interno** mantendo as pastas estruturais:<br>• `Downloads/`<br>• `Documents/` e `Documentos/`<br>• `Desktop/` e `Área de Trabalho/`<br>• `Pictures/` e `Imagens/`<br>• `Videos/` e `Vídeos/`<br>• `Music/` e `Música/` |
-| **Pastas Customizadas** | `CUSTOM_PATHS` | Remove recursivamente todos os diretórios e arquivos listados no array `CUSTOM_PATHS`. |
+| **Pastas Customizadas** | `CUSTOM_PATHS` | Remove recursivamente os diretórios e arquivos listados no array `CUSTOM_PATHS`, desde que resolvam para dentro do `$HOME`. |
 | **Lixeira** | `CLEAN_TRASH` | Esvazia todos os arquivos da lixeira do usuário em `~/.local/share/Trash`. |
-| **Histórico de Shell** | `CLEAN_SHELL_HISTORY` | • Históricos de shell: `~/.bash_history`, `~/.zsh_history`<br>• Históricos de pagers e REPLs: `.lesshst`, `.python_history`, `.node_repl_history`<br>• Históricos de bancos de dados: `.mysql_history`, `.psql_history`, `.sqlite_history`<br>• Históricos de editores: `.viminfo`, `.local/share/nvim`<br>• Limpa histórico em memória da sessão atual com `history -c` e `history -w`. |
+| **Histórico de Shell** | `CLEAN_SHELL_HISTORY` | • Históricos de shell: `~/.bash_history`, `~/.zsh_history`<br>• Históricos de pagers e REPLs: `.lesshst`, `.python_history`, `.node_repl_history`<br>• Históricos de bancos de dados: `.mysql_history`, `.psql_history`, `.sqlite_history`<br>• Históricos de editores: `.viminfo`, `.local/share/nvim`<br>• Avisa que o histórico em memória do terminal atual precisa ser descartado à mão (veja _Cuidados Finais_). |
 
 ---
 
@@ -198,9 +202,17 @@ CUSTOM_PATHS=(
 
 Ao concluir a execução do script:
 
-1. **Feche o terminal imediatamente ou faça Logout:**  
-   Alguns shells (como o Bash ou Zsh) mantêm buffers de comandos executados na sessão corrente em memória RAM e os escrevem de volta no arquivo de histórico quando o terminal é fechado normalmente. Embora o script execute `history -c`, a melhor prática recomendada é fechar a janela do terminal ou encerrar a sessão do usuário (`gnome-session-quit` ou reiniciar o computador).
-2. **Revogue Tokens em Servidores Remotos:**  
+1. **Descarte o histórico do terminal atual — apagar o arquivo não basta:**  
+   O Bash e o Zsh mantêm os comandos da sessão corrente em memória e **regravam** `~/.bash_history` no logout, desfazendo a remoção feita pelo script. Um `history -c` executado de dentro do script não resolve: ele afeta apenas o subshell do próprio script, não o terminal que o invocou. No mesmo terminal em que rodou o protocolo, execute:
+
+   ```bash
+   unset HISTFILE && exit
+   ```
+
+   Sem `HISTFILE`, o shell não tem onde gravar o buffer ao sair. Em seguida encerre a sessão do usuário (`gnome-session-quit`) ou reinicie a máquina.
+2. **Remoção não é destruição — assuma disco criptografado:**  
+   O script usa `rm -rf`, que desfaz o link do arquivo mas não sobrescreve os blocos. Sem criptografia de disco completa (LUKS/FDE), o conteúdo de chaves SSH e tokens continua recuperável por perícia forense. A garantia oferecida aqui é contra inspeção casual do próximo usuário da máquina, não contra análise forense. Em SSD com TRIM e sistemas de arquivo com journal, ferramentas como `shred` dão falsa sensação de segurança e por isso não são usadas.
+3. **Revogue Tokens em Servidores Remotos:**  
    Lembre-se de revogar chaves e acessos nos serviços remotos (GitHub, GitLab, AWS IAM Console, GCP Console, VPNs corporativas), pois apagar o token local encerra apenas o arquivo físico da máquina.
 
 ---
