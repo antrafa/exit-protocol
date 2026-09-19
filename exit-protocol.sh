@@ -40,6 +40,7 @@ log_skip()    { echo -e "${COLOR_GRAY}[IGNORADO]${COLOR_RESET} $*"; }
 
 DRY_RUN=false
 FORCE=false
+FAILED_COUNT=0
 
 check_not_root() {
     if [[ "${EUID}" -eq 0 ]]; then
@@ -117,6 +118,22 @@ safe_remove() {
     fi
 }
 
+# Contabiliza a falha em vez de deixar 'set -e' abortar o protocolo inteiro no
+# meio: um alvo bloqueado não pode impedir a limpeza dos módulos seguintes.
+remove_all() {
+    local target
+    for target in "$@"; do
+        safe_remove "${target}" || FAILED_COUNT=$((FAILED_COUNT + 1))
+    done
+}
+
+remove_contents() {
+    local target
+    for target in "$@"; do
+        safe_remove "${target}" 1 || FAILED_COUNT=$((FAILED_COUNT + 1))
+    done
+}
+
 # --- MÓDULO: NAVEGADORES E PROCESSOS ---
 
 kill_running_processes() {
@@ -172,9 +189,7 @@ clean_browsers() {
         "${HOME}/.config/vivaldi"
     )
 
-    for target in "${browser_targets[@]}"; do
-        safe_remove "${target}"
-    done
+    remove_all "${browser_targets[@]}"
 }
 
 # --- MÓDULO: CREDENCIAIS DE DESENVOLVIMENTO, NUVEM E TOKENS ---
@@ -196,9 +211,7 @@ clean_dev_credentials() {
         "${HOME}/.config/git"
     )
 
-    for target in "${cred_targets[@]}"; do
-        safe_remove "${target}"
-    done
+    remove_all "${cred_targets[@]}"
 }
 
 clean_cloud_infra() {
@@ -220,9 +233,7 @@ clean_cloud_infra() {
         "${HOME}/.vault-token"
     )
 
-    for target in "${cloud_targets[@]}"; do
-        safe_remove "${target}"
-    done
+    remove_all "${cloud_targets[@]}"
 }
 
 clean_dev_tokens() {
@@ -246,9 +257,7 @@ clean_dev_tokens() {
         "${HOME}/.netrc"
     )
 
-    for target in "${token_targets[@]}"; do
-        safe_remove "${target}"
-    done
+    remove_all "${token_targets[@]}"
 }
 
 # --- MÓDULO: IDES E EDITORES ---
@@ -271,9 +280,7 @@ clean_ides() {
         "${HOME}/.cache/JetBrains"
     )
 
-    for target in "${ide_targets[@]}"; do
-        safe_remove "${target}"
-    done
+    remove_all "${ide_targets[@]}"
 }
 
 # --- MÓDULO: COMUNICAÇÃO ---
@@ -298,9 +305,7 @@ clean_communication() {
         "${HOME}/.var/app/org.telegram.desktop"
     )
 
-    for target in "${comm_targets[@]}"; do
-        safe_remove "${target}"
-    done
+    remove_all "${comm_targets[@]}"
 }
 
 # --- MÓDULO: PASTAS PESSOAIS E CUSTOMIZADAS ---
@@ -323,11 +328,7 @@ clean_user_dirs() {
         "${HOME}/Música"
     )
 
-    for dir in "${user_dirs[@]}"; do
-        if [[ -d "${dir}" ]]; then
-            safe_remove "${dir}" 1
-        fi
-    done
+    remove_contents "${user_dirs[@]}"
 }
 
 clean_custom_paths() {
@@ -349,10 +350,7 @@ clean_trash() {
     [[ "${CLEAN_TRASH}" != true ]] && return 0
     log_info "Esvaziando Lixeira..."
 
-    local trash_dir="${HOME}/.local/share/Trash"
-    if [[ -d "${trash_dir}" ]]; then
-        safe_remove "${trash_dir}" 1
-    fi
+    remove_contents "${HOME}/.local/share/Trash"
 }
 
 clean_shell_history() {
@@ -374,9 +372,7 @@ clean_shell_history() {
         "${HOME}/.local/share/nvim"
     )
 
-    for hist in "${history_files[@]}"; do
-        safe_remove "${hist}"
-    done
+    remove_all "${history_files[@]}"
 
     # Limpar buffer da sessão ativa se não for dry-run
     if [[ "${DRY_RUN}" != true ]]; then
@@ -413,11 +409,20 @@ run_protocol() {
     if [[ "${DRY_RUN}" == true ]]; then
         echo -e "${COLOR_YELLOW}     SIMULAÇÃO CONCLUÍDA (--dry-run)                 ${COLOR_RESET}"
         echo -e "${COLOR_YELLOW}  Nenhum arquivo ou dado real foi modificado.        ${COLOR_RESET}"
+    elif [[ "${FAILED_COUNT}" -gt 0 ]]; then
+        echo -e "${COLOR_RED}     EXIT PROTOCOL CONCLUÍDO COM FALHAS               ${COLOR_RESET}"
     else
         echo -e "${COLOR_GREEN}     EXIT PROTOCOL CONCLUÍDO COM SUCESSO!            ${COLOR_RESET}"
         echo -e "${COLOR_GREEN}  Recomenda-se fechar este terminal ou fazer logout. ${COLOR_RESET}"
     fi
     echo -e "${COLOR_GREEN}=====================================================${COLOR_RESET}"
+
+    if [[ "${FAILED_COUNT}" -gt 0 ]]; then
+        echo
+        log_error "${FAILED_COUNT} item(ns) não puderam ser removidos ou foram bloqueados."
+        log_error "Revise as linhas [ERRO] acima: esses dados AINDA ESTÃO na máquina."
+        return 1
+    fi
 }
 
 show_help() {

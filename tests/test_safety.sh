@@ -38,6 +38,23 @@ if safe_remove "${HOME}/qualquer/../../$(basename "${HOME}")" 0 2>/dev/null; the
     exit 1
 fi
 
+echo "=== Testando que um alvo bloqueado não aborta o protocolo ==="
+BLOCK_TMP=$(mktemp -d /tmp/safety_test_block.XXXXXX)
+touch "${BLOCK_TMP}/depois.txt"
+FAILED_COUNT=0
+remove_all "/" "${BLOCK_TMP}/depois.txt"
+if [[ -e "${BLOCK_TMP}/depois.txt" ]]; then
+    echo "FALHA: alvo seguinte ao bloqueio não foi processado"
+    rm -rf "${BLOCK_TMP}"
+    exit 1
+fi
+if [[ "${FAILED_COUNT}" -ne 1 ]]; then
+    echo "FALHA: FAILED_COUNT esperado 1, obtido ${FAILED_COUNT}"
+    rm -rf "${BLOCK_TMP}"
+    exit 1
+fi
+rm -rf "${BLOCK_TMP}"
+
 echo "=== Testando remoção de symlink quebrado ==="
 TEST_TMP=$(mktemp -d /tmp/safety_test_symlink.XXXXXX)
 ln -s "${TEST_TMP}/nonexistent_target" "${TEST_TMP}/broken_link"
