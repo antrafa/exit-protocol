@@ -19,6 +19,7 @@ CLEAN_TRASH=true             # Lixeira do Ubuntu (~/.local/share/Trash)
 CUSTOM_PATHS=(
     # "$HOME/projetos"
     # "$HOME/workspace"
+    # "$HOME/minha-pasta-privada"
 )
 
 # --- CORES E FORMATAÇÃO ---
@@ -355,6 +356,8 @@ clean_shell_history() {
     log_info "Removendo históricos de comandos do shell..."
 
     local history_files=(
+        "${HOME}/.shell_alias"
+        "${HOME}/.shell_config"
         "${HOME}/.bash_history"
         "${HOME}/.zsh_history"
         "${HOME}/.lesshst"
