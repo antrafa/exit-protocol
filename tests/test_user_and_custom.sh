@@ -5,8 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET_SCRIPT="${SCRIPT_DIR}/exit-protocol.sh"
 
 FAKE_HOME=$(mktemp -d /tmp/fake_user_test.XXXXXX)
-CUSTOM_TEST_DIR=$(mktemp -d /tmp/fake_custom_dir.XXXXXX)
-trap 'rm -rf "${FAKE_HOME}" "${CUSTOM_TEST_DIR}"' EXIT
+CUSTOM_TEST_DIR="${FAKE_HOME}/projeto_privado"
+OUTSIDE_TEST_DIR=$(mktemp -d /tmp/fake_outside_dir.XXXXXX)
+trap 'rm -rf "${FAKE_HOME}" "${OUTSIDE_TEST_DIR}"' EXIT
+
+mkdir -p "${CUSTOM_TEST_DIR}"
 
 mkdir -p "${FAKE_HOME}/Downloads"
 touch "${FAKE_HOME}/Downloads/meu_boleto.pdf"
@@ -22,6 +25,7 @@ touch "${FAKE_HOME}/.bash_history"
 touch "${FAKE_HOME}/.zsh_history"
 
 touch "${CUSTOM_TEST_DIR}/codigo_secreto.py"
+touch "${OUTSIDE_TEST_DIR}/nao_deve_sumir.txt"
 
 export HOME="${FAKE_HOME}"
 source "${TARGET_SCRIPT}" --source-only
@@ -66,6 +70,15 @@ fi
 # Verifica se bash_history foi apagado
 if [[ -f "${FAKE_HOME}/.bash_history" ]]; then
     echo "FALHA: .bash_history ainda existe!"
+    exit 1
+fi
+
+# CUSTOM_PATHS fora do HOME deve ser recusado, não apagado
+echo "=== Testando recusa de CUSTOM_PATH fora do HOME ==="
+CUSTOM_PATHS=("${OUTSIDE_TEST_DIR}")
+clean_custom_paths || true
+if [[ ! -e "${OUTSIDE_TEST_DIR}/nao_deve_sumir.txt" ]]; then
+    echo "FALHA: CUSTOM_PATH fora do HOME foi apagado!"
     exit 1
 fi
 

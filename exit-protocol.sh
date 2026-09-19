@@ -371,10 +371,22 @@ clean_custom_paths() {
     fi
 
     log_info "Processando pastas customizadas configuradas em CUSTOM_PATHS..."
+    local custom expanded home_real
+    home_real="$(realpath -m -- "${HOME:-/nonexistent}")"
+
     for custom in "${CUSTOM_PATHS[@]}"; do
         # Expandir til (~) se presente
-        local expanded="${custom/#\~/$HOME}"
-        safe_remove "${expanded}"
+        expanded="$(realpath -m -- "${custom/#\~/$HOME}")"
+
+        # CUSTOM_PATHS é o único alvo que vem de edição manual e o mais perigoso
+        # do script: qualquer coisa fora do HOME é erro de configuração.
+        if [[ "${expanded}" != "${home_real}/"* ]]; then
+            log_error "Fora do HOME, ignorado: ${custom}"
+            FAILED_COUNT=$((FAILED_COUNT + 1))
+            continue
+        fi
+
+        safe_remove "${expanded}" || FAILED_COUNT=$((FAILED_COUNT + 1))
     done
 }
 
