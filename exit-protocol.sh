@@ -158,11 +158,14 @@ kill_running_processes() {
     log_info "Encerrando processos de navegadores e aplicativos..."
     local apps=(
         "chrome" "google-chrome" "chromium" "chromium-browser"
-        "firefox" "brave" "msedge" "microsoft-edge"
+        "firefox" "brave" "brave-browser" "msedge" "microsoft-edge"
         "slack" "discord" "teams" "telegram-desktop"
     )
+    # Padrão ancorado em '/' e terminado por espaço/fim de linha. 'pkill -f chrome'
+    # casaria 'tail -f chrome.log' ou o próprio script se ele morasse em
+    # ~/chrome-tools/, matando a execução no meio.
     for app in "${apps[@]}"; do
-        if pkill -f "${app}" 2>/dev/null; then
+        if pkill -u "${USER}" -f "/${app}( |\$)" 2>/dev/null; then
             log_info "Processo encerrado: ${app}"
         fi
     done
