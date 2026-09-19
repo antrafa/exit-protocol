@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET_SCRIPT="${SCRIPT_DIR}/protocolo-demissao.sh"
+TARGET_SCRIPT="${SCRIPT_DIR}/exit-protocol.sh"
 
 echo "=== Testando --help ==="
 output=$("${TARGET_SCRIPT}" --help)

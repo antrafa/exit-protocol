@@ -1,7 +1,7 @@
-# Protocolo de Demissão 🛡️
-> Higienização rápida, segura e auditável de estações de trabalho Ubuntu Linux.
+# Exit Protocol 🛡️
+> Higienização rápida, segura e auditável de estações de trabalho Ubuntu Linux para desenvolvedores e equipes de TI.
 
-O **Protocolo de Demissão** é um utilitário em Bash desenvolvido para automatizar a remoção completa de credenciais pessoais, tokens corporativos, históricos de comando, perfis de navegadores, sessões de aplicativos de comunicação e repositórios locais antes da devolução de um computador ou desligamento de um projeto.
+O **Exit Protocol** é um utilitário em Bash desenvolvido para automatizar a remoção completa de credenciais pessoais, tokens corporativos, históricos de comando, perfis de navegadores, sessões de aplicativos de comunicação e repositórios locais antes da devolução de um computador, encerramento de contrato ou troca de equipamento.
 
 ---
 
@@ -19,7 +19,7 @@ Ao devolver uma máquina corporativa com Ubuntu/Linux ou encerrar um contrato de
 
 Fazer essa limpeza manualmente é moroso e sujeito a esquecimentos. Por outro lado, comandos manuais mal planejados (`rm -rf`) trazem risco de corrupção ou travamento do sistema.
 
-O **Protocolo de Demissão** orquestra essa limpeza de ponta a ponta com salvaguardas de segurança rigorosas, execução com simulação (*dry-run*) e confirmação explícita.
+O **Exit Protocol** orquestra essa limpeza de ponta a ponta com salvaguardas de segurança rigorosas, execução com simulação (*dry-run*) e confirmação explícita.
 
 ---
 
@@ -49,11 +49,12 @@ O script foi concebido com uma política rígida de tolerância zero a falhas de
 
 ## 🚀 Guia de Uso
 
-### 1. Dar Permissão de Execução
+### 1. Clonar e Dar Permissão de Execução
 
-Torne o script executável:
 ```bash
-chmod +x protocolo-demissao.sh
+git clone https://github.com/antrafa/exit-protocol.git
+cd exit-protocol
+chmod +x exit-protocol.sh
 ```
 
 ---
@@ -63,7 +64,7 @@ chmod +x protocolo-demissao.sh
 Antes de apagar qualquer arquivo, execute o modo de simulação. Ele analisa o sistema e lista exatamente o que seria removido ou esvaziado, mostrando tamanhos estimados e arquivos não encontrados, sem alterar nada:
 
 ```bash
-./protocolo-demissao.sh --dry-run
+./exit-protocol.sh --dry-run
 ```
 
 Exemplo de saída do dry-run:
@@ -94,7 +95,7 @@ Modo Dry-Run: true
 Para executar a higienização de fato:
 
 ```bash
-./protocolo-demissao.sh
+./exit-protocol.sh
 ```
 
 O script exibirá um aviso em vermelho e solicitará uma confirmação digitada:
@@ -117,7 +118,7 @@ Para confirmar a execução, digite exatamente 'CONFIRMAR':
 Para uso automatizado por equipes de TI, scripts de desprovisionamento ou rotinas sem prompt interativo:
 
 ```bash
-./protocolo-demissao.sh --force
+./exit-protocol.sh --force
 ```
 
 > ⚠️ **Atenção:** A flag `--force` ignora a pergunta de confirmação e executa a remoção imediatamente. Utilize apenas quando tiver total certeza da configuração.
@@ -129,14 +130,14 @@ Para uso automatizado por equipes de TI, scripts de desprovisionamento ou rotina
 Para ver as opções disponíveis via linha de comando:
 
 ```bash
-./protocolo-demissao.sh --help
+./exit-protocol.sh --help
 ```
 
 ---
 
 ## ⚙️ Configuração e Personalização
 
-No topo do arquivo `protocolo-demissao.sh`, você encontra as flags que ligam ou desligam cada módulo de limpeza e a lista de pastas customizadas:
+No topo do arquivo `exit-protocol.sh`, você encontra as flags que ligam ou desligam cada módulo de limpeza e a lista de pastas customizadas:
 
 ```bash
 # --- CONFIGURAÇÃO DE ATIVAÇÃO DOS MÓDULOS ---

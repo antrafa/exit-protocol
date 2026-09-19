@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# PROTOCOLO DE DEMISSÃO - Higienização de Estações Ubuntu Linux
+# EXIT PROTOCOL - Workstation Sanitization & Offboarding (Ubuntu Linux)
 # ==============================================================================
 set -eo pipefail
 
@@ -385,7 +385,7 @@ clean_shell_history() {
 
 run_protocol() {
     echo -e "${COLOR_CYAN}=====================================================${COLOR_RESET}"
-    echo -e "${COLOR_CYAN}       INICIANDO PROTOCOLO DE DEMISSÃO               ${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}              INICIANDO EXIT PROTOCOL                ${COLOR_RESET}"
     echo -e "${COLOR_CYAN}=====================================================${COLOR_RESET}"
     echo "Usuário alvo: ${USER} (${HOME})"
     echo "Modo Dry-Run: ${DRY_RUN}"
@@ -410,7 +410,7 @@ run_protocol() {
         echo -e "${COLOR_YELLOW}     SIMULAÇÃO CONCLUÍDA (--dry-run)                 ${COLOR_RESET}"
         echo -e "${COLOR_YELLOW}  Nenhum arquivo ou dado real foi modificado.        ${COLOR_RESET}"
     else
-        echo -e "${COLOR_GREEN}     PROTOCOLO CONCLUÍDO COM SUCESSO!                ${COLOR_RESET}"
+        echo -e "${COLOR_GREEN}     EXIT PROTOCOL CONCLUÍDO COM SUCESSO!            ${COLOR_RESET}"
         echo -e "${COLOR_GREEN}  Recomenda-se fechar este terminal ou fazer logout. ${COLOR_RESET}"
     fi
     echo -e "${COLOR_GREEN}=====================================================${COLOR_RESET}"
@@ -420,7 +420,7 @@ show_help() {
     cat << EOF
 Uso: $(basename "$0") [OPÇÕES]
 
-Script seguro para higienização e protocolo de desligamento no Ubuntu Linux.
+Script seguro para higienização e desligamento/offboarding no Ubuntu Linux.
 
 Opções:
   --dry-run       Simula a execução e lista tudo o que seria removido sem alterar nada.

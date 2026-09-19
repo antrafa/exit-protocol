@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET_SCRIPT="${SCRIPT_DIR}/protocolo-demissao.sh"
+TARGET_SCRIPT="${SCRIPT_DIR}/exit-protocol.sh"
 
 # Cria ambiente isolado fingindo ser o HOME
 FAKE_HOME=$(mktemp -d /tmp/fake_home_test.XXXXXX)
