@@ -17,6 +17,7 @@ CLEAN_TRASH=true             # Lixeira do Ubuntu (~/.local/share/Trash)
 
 # --- EXCLUSÃO PROFUNDA ---
 SECURE_DELETE=true           # Sobrescreve cada arquivo com shred antes de remover
+WIPE_FREE_SPACE=true         # Ao final, preenche o espaço livre do disco do HOME (demorado)
 
 # --- PASTAS CUSTOMIZADAS ---
 CUSTOM_PATHS=(
@@ -442,6 +443,43 @@ clean_shell_history() {
     fi
 }
 
+# --- MÓDULO: ESPAÇO LIVRE ---
+
+# Cobre o que o shred não alcança: arquivos apagados antes do protocolo e, em
+# SSD, blocos antigos que o controlador remapeou. Não alcança a área de
+# overprovisioning do SSD nem os 5% reservados ao root no ext4.
+wipe_free_space() {
+    [[ "${WIPE_FREE_SPACE}" != true ]] && return 0
+    local fill="${HOME}/.exit-protocol-fill"
+    local mount_point
+    mount_point="$(df --output=target "${HOME}" | tail -1)"
+
+    if [[ "${DRY_RUN}" == true ]]; then
+        log_dry "Sobrescreveria $(df -h --output=avail "${HOME}" | tail -1 | tr -d ' ') de espaço livre em ${mount_point}"
+        return 0
+    fi
+
+    log_info "Sobrescrevendo espaço livre de ${mount_point} (pode levar muitos minutos)..."
+    # Disco cheio derruba os aplicativos do usuário: o arquivo tem que sumir
+    # mesmo se a execução for interrompida com Ctrl+C.
+    trap 'rm -f -- "${fill}"; exit 130' INT TERM
+
+    local dd_error
+    dd_error=$(LC_ALL=C dd if=/dev/zero of="${fill}" bs=4M status=none 2>&1) || true
+    sync
+    rm -f -- "${fill}"
+    trap - INT TERM
+
+    # dd só termina ao esgotar o disco; qualquer outro motivo é falha real.
+    if [[ "${dd_error}" != *"No space left"* ]]; then
+        log_error "Sobrescrita do espaço livre interrompida: ${dd_error}"
+        FAILED_COUNT=$((FAILED_COUNT + 1))
+        return 0
+    fi
+    log_success "Espaço livre sobrescrito: ${mount_point}"
+    log_warn "Em SSD, libere os blocos ao controlador executando ao final: sudo fstrim -v ${mount_point}"
+}
+
 # --- ORQUESTRADOR PRINCIPAL ---
 
 run_protocol() {
@@ -464,6 +502,7 @@ run_protocol() {
     clean_custom_paths
     clean_trash
     clean_shell_history
+    wipe_free_space
 
     echo
     echo -e "${COLOR_GREEN}=====================================================${COLOR_RESET}"
