@@ -46,6 +46,8 @@ O script foi concebido com uma política rígida de tolerância zero a falhas de
 - **Sucesso Verificado:** O script só registra `[OK] Removido` depois de conferir que o alvo sumiu do disco. Falhas viram `[ERRO]` e o script encerra com código de saída diferente de zero.
 - **Suporte a Links Simbólicos Quebrados:** Identifica e remove symlinks inválidos sem falhas de verificação de existência (`-e` vs `-L`).
 - **Preservação de Pastas do Sistema:** Em pastas como `Downloads/`, `Documentos/` e `Lixeira`, o script **apaga apenas o conteúdo interno**, preservando a pasta em si para manter a integridade visual da interface gráfica do Ubuntu.
+- **Shred Sem Efeito Colateral:** A sobrescrita pula symlinks e hardlinks, que o `shred` seguiria até o arquivo de origem fora do alvo. Falha na sobrescrita vira `[AVISO]`, nunca sucesso silencioso.
+- **Disco Cheio Não Fica Para Trás:** O arquivo de preenchimento do `WIPE_FREE_SPACE` é removido mesmo com `Ctrl+C`.
 - **Confirmação Explícita:** Por padrão, a execução real só inicia após o usuário digitar exatamente a palavra `CONFIRMAR`.
 
 ---
@@ -154,6 +156,10 @@ CLEAN_USER_DIRS=true         # Downloads, Documentos, Desktop, Imagens, Vídeos,
 CLEAN_SHELL_HISTORY=true     # .bash_history, .zsh_history, histórico de comandos e DBs
 CLEAN_TRASH=true             # Lixeira do Ubuntu (~/.local/share/Trash)
 
+# --- EXCLUSÃO PROFUNDA ---
+SECURE_DELETE=true           # Sobrescreve cada arquivo com shred antes de remover
+WIPE_FREE_SPACE=true         # Ao final, preenche o espaço livre do disco do HOME (demorado)
+
 # --- PASTAS CUSTOMIZADAS ---
 CUSTOM_PATHS=(
     # "$HOME/projetos"
@@ -210,8 +216,8 @@ Ao concluir a execução do script:
    ```
 
    Sem `HISTFILE`, o shell não tem onde gravar o buffer ao sair. Em seguida encerre a sessão do usuário (`gnome-session-quit`) ou reinicie a máquina.
-2. **Remoção não é destruição — assuma disco criptografado:**  
-   O script usa `rm -rf`, que desfaz o link do arquivo mas não sobrescreve os blocos. Sem criptografia de disco completa (LUKS/FDE), o conteúdo de chaves SSH e tokens continua recuperável por perícia forense. A garantia oferecida aqui é contra inspeção casual do próximo usuário da máquina, não contra análise forense. Em SSD com TRIM e sistemas de arquivo com journal, ferramentas como `shred` dão falsa sensação de segurança e por isso não são usadas.
+2. **Exclusão profunda tem limite físico — em SSD, só criptografia ou sanitize garantem:**  
+   Com `SECURE_DELETE=true`, cada arquivo é sobrescrito com `shred -n 1` antes do `rm` (symlinks e hardlinks são pulados para não destruir o arquivo de origem). Com `WIPE_FREE_SPACE=true`, o script preenche todo o espaço livre do disco do `$HOME` ao final, cobrindo arquivos apagados antes do protocolo. Em **HD mecânico** isso torna os dados irrecuperáveis. Em **SSD/NVMe** é esforço máximo sem root, não garantia: o controlador grava a sobrescrita em outra célula e mantém a antiga até reciclá-la, e a área de overprovisioning fica fora do alcance. Depois do script, rode `sudo fstrim -v /` para o controlador descartar os blocos liberados. Garantia real em SSD só existe com disco criptografado (LUKS) desde a instalação ou com `nvme sanitize`/`nvme format -s1` a partir de um pendrive live, o que apaga o disco inteiro.
 3. **Revogue Tokens em Servidores Remotos:**  
    Lembre-se de revogar chaves e acessos nos serviços remotos (GitHub, GitLab, AWS IAM Console, GCP Console, VPNs corporativas), pois apagar o token local encerra apenas o arquivo físico da máquina.
 
