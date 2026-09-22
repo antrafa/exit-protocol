@@ -15,6 +15,9 @@ CLEAN_USER_DIRS=true         # Downloads, Documentos, Desktop, Imagens, Vídeos,
 CLEAN_SHELL_HISTORY=true     # .bash_history, .zsh_history e histórico de terminal
 CLEAN_TRASH=true             # Lixeira do Ubuntu (~/.local/share/Trash)
 
+# --- EXCLUSÃO PROFUNDA ---
+SECURE_DELETE=true           # Sobrescreve cada arquivo com shred antes de remover
+
 # --- PASTAS CUSTOMIZADAS ---
 CUSTOM_PATHS=(
     # "$HOME/projetos"
@@ -48,6 +51,14 @@ check_not_root() {
         log_error "Execute como o usuário comum dono dos arquivos que serão limpos."
         exit 1
     fi
+}
+
+# '-type f' pula symlinks e '-links 1' pula hardlinks porque o shred segue o
+# link e destruiria o arquivo de origem, que pode morar fora do HOME
+# (ex.: ~/.gitconfig apontando para um repositório de dotfiles).
+overwrite_files() {
+    [[ "${SECURE_DELETE}" != true ]] && return 0
+    find "$1" -type f -links 1 -exec shred -n 1 -- {} + 2>/dev/null
 }
 
 safe_remove() {
@@ -98,6 +109,7 @@ safe_remove() {
             return 0
         fi
 
+        overwrite_files "${target}" || log_warn "Sobrescrita incompleta, parte foi só desvinculada: ${target}"
         find "${target}" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + 2>/dev/null || true
 
         local remaining
@@ -123,6 +135,7 @@ safe_remove() {
         return 0
     fi
 
+    overwrite_files "${target}" || log_warn "Sobrescrita incompleta, parte foi só desvinculada: ${target}"
     rm -rf -- "${target}" 2>/dev/null || true
 
     # O propósito do script é garantir que o dado sumiu: só declara sucesso

@@ -84,4 +84,28 @@ if [[ -L "${TEST_TMP}/broken_link" ]]; then
 fi
 rm -rf "${TEST_TMP}"
 
+echo "=== Testando que o shred não atravessa symlink nem hardlink ==="
+LINK_TMP=$(mktemp -d /tmp/safety_test_shred.XXXXXX)
+mkdir -p "${LINK_TMP}/alvo" "${LINK_TMP}/fora"
+echo "preservar" > "${LINK_TMP}/fora/via_symlink.txt"
+echo "preservar" > "${LINK_TMP}/fora/via_hardlink.txt"
+echo "segredo" > "${LINK_TMP}/alvo/proprio.txt"
+ln -s "${LINK_TMP}/fora/via_symlink.txt" "${LINK_TMP}/alvo/link"
+ln "${LINK_TMP}/fora/via_hardlink.txt" "${LINK_TMP}/alvo/hard"
+SECURE_DELETE=true
+safe_remove "${LINK_TMP}/alvo"
+for external in via_symlink.txt via_hardlink.txt; do
+    if [[ "$(cat "${LINK_TMP}/fora/${external}")" != "preservar" ]]; then
+        echo "FALHA: shred corrompeu arquivo fora do alvo (${external})"
+        rm -rf "${LINK_TMP}"
+        exit 1
+    fi
+done
+if [[ -e "${LINK_TMP}/alvo" ]]; then
+    echo "FALHA: alvo não foi removido"
+    rm -rf "${LINK_TMP}"
+    exit 1
+fi
+rm -rf "${LINK_TMP}"
+
 echo "=== Testes de Segurança passaram com sucesso! ==="
